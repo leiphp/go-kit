@@ -4,11 +4,24 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"log"
 )
-//注册consul
-func InitRegisterServer() {
+
+var (
+	ConsulClient	*consulapi.Client
+)
+
+//初始化
+func init() {
 	config := consulapi.DefaultConfig()
 	config.Address = "192.168.1.104:8500" //虚拟机consul服务地址
+	client, err := consulapi.NewClient(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ConsulClient = client
+}
 
+//注册consul
+func RegisterServer() {
 	reg := consulapi.AgentServiceRegistration{}
 	reg.ID = "gokit01"
 	reg.Name = "gokitservice"
@@ -22,13 +35,14 @@ func InitRegisterServer() {
 
 	reg.Check = &check
 
-	client, err := consulapi.NewClient(config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = client.Agent().ServiceRegister(&reg)
+	err := ConsulClient.Agent().ServiceRegister(&reg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+}
+
+//反注册consul服务
+func UnregisterServer() {
+	ConsulClient.Agent().ServiceDeregister("gokit01")
 }
