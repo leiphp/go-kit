@@ -16,6 +16,10 @@ func main () {
 	router := mymux.NewRouter()
 	//r.Handle(`/user/{uid:\d+}`,serverHandler)
 	router.Methods("GET","DELETE").Path(`/user/{uid:\d+}`).Handler(serverHandler)
-	http.ListenAndServe(":8080",router)
+	router.Methods("GET").Path("/health").HandlerFunc(func(write http.ResponseWriter, request *http.Request) {
+		write.Header().Set("Content-Type", "application/json")
+		write.Write([]byte(`{"status":"ok"}`))
+	})
 
+	http.ListenAndServe(":8080",router)
 }
