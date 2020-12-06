@@ -3,6 +3,7 @@ package main
 import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	mymux "github.com/gorilla/mux"
+	"gokit/initialize"
 	. "gokit/services"
 	"net/http"
 )
@@ -20,6 +21,9 @@ func main () {
 		write.Header().Set("Content-Type", "application/json")
 		write.Write([]byte(`{"status":"ok"}`))
 	})
+
+	//注册consul服务
+	initialize.InitRegisterServer()
 
 	http.ListenAndServe(":8080",router)
 }
