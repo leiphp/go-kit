@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/endpoint"
 	"gokit/initialize"
+	"gokit/utils"
+	"golang.org/x/time/rate"
 	"strconv"
 )
 
@@ -15,6 +17,19 @@ type UserRequest struct {
 
 type UserResponse struct {
 	Result string 	`json:"result"`
+}
+
+//假如限流功能的中间件
+func RateLimit(limit *rate.Limiter) endpoint.Middleware {
+	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			if !limit.Allow() {
+				//return nil, errors.New("too many requests")
+				return nil, utils.NewMyError(429, "too many requests")
+			}
+			return next(ctx, request)
+		}
+	}
 }
 
 func GenUserEndpoint( service UserService) endpoint.Endpoint {

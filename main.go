@@ -7,6 +7,7 @@ import (
 	mymux "github.com/gorilla/mux"
 	"gokit/initialize"
 	. "gokit/services"
+	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"os"
@@ -29,9 +30,14 @@ func main () {
 	initialize.SetServiceNameAndPort(*name, *port) //设置服务名和端口
 
 	user := UserService{}
-	endp := GenUserEndpoint(user)
+	limit := rate.NewLimiter(1, 5)
+	endp := RateLimit(limit)(GenUserEndpoint(user))
 
-	serverHandler := httptransport.NewServer(endp,DecodeUserRequest,EncodeUserRequest)
+	options := []httptransport.ServerOption{
+		httptransport.ServerErrorEncoder(MyErrorEncoder),
+	}
+
+	serverHandler := httptransport.NewServer(endp,DecodeUserRequest,EncodeUserRequest,options...)
 
 	router := mymux.NewRouter()
 	//r.Handle(`/user/{uid:\d+}`,serverHandler)
