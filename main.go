@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	httptransport "github.com/go-kit/kit/transport/http"
 	mymux "github.com/gorilla/mux"
@@ -10,10 +11,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 )
 
 func main () {
+	//服务参数获取
+	name := flag.String("name","","服务名称")
+	port := flag.Int("p",0,"服务端口")
+	flag.Parse()
+	if *name == "" {
+		log.Fatal("请指定服务名")
+	}
+	if *port == 0 {
+		log.Fatal("请指定端口")
+	}
+	initialize.SetServiceNameAndPort(*name, *port) //设置服务名和端口
+
 	user := UserService{}
 	endp := GenUserEndpoint(user)
 
@@ -31,7 +45,7 @@ func main () {
 	go func() {
 		//注册consul服务
 		initialize.RegisterServer()
-		err := http.ListenAndServe(":8080",router)
+		err := http.ListenAndServe(":"+strconv.Itoa(*port),router)
 		if err != nil {
 			log.Println(err)
 			errChan <- err
