@@ -1,6 +1,7 @@
 package initialize
 
 import (
+	"fmt"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/google/uuid"
 	"log"
@@ -36,7 +37,8 @@ func RegisterServer() {
 
 	check := consulapi.AgentServiceCheck{}
 	check.Interval = "5s"
-	check.HTTP = "http://192.168.1.103:8080/health"
+	//check.HTTP = "http://192.168.1.103:8080/health"
+	check.HTTP = fmt.Sprintf("http://%s:%d/health",reg.Address,ServicePort)
 
 	reg.Check = &check
 

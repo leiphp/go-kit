@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-kit/kit/endpoint"
+	"gokit/initialize"
+	"strconv"
 )
 
 type UserRequest struct {
@@ -20,7 +22,7 @@ func GenUserEndpoint( service UserService) endpoint.Endpoint {
 		r := request.(UserRequest)
 		var result string
 		if r.Method == "GET" {
-			result = service.GetName(r.Uid)
+			result = service.GetName(r.Uid)+strconv.Itoa(initialize.ServicePort)
 		}else if r.Method == "DELETE" {
 			err := service.DelUser(r.Uid)
 			if err != nil {
