@@ -8,7 +8,6 @@ import (
 	"gokit/initialize"
 	"gokit/utils"
 	"golang.org/x/time/rate"
-	"os"
 	"strconv"
 )
 
@@ -19,6 +18,17 @@ type UserRequest struct {
 
 type UserResponse struct {
 	Result string 	`json:"result"`
+}
+
+//日志中间件
+func UserServiceLogMiddleware(logger log.Logger) endpoint.Middleware {
+	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			r := request.(UserRequest)
+			logger.Log("method",r.Method,"event","get user","userId",r.Uid)
+			return next(ctx, request)
+		}
+	}
 }
 
 //假如限流功能的中间件
@@ -36,18 +46,10 @@ func RateLimit(limit *rate.Limiter) endpoint.Middleware {
 
 func GenUserEndpoint( service UserService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		var logger log.Logger
-		{
-			logger = log.NewLogfmtLogger(os.Stdout)
-			logger = log.WithPrefix(logger,"gokit","1.0")
-			logger = log.With(logger,"time",log.DefaultTimestampUTC)
-			logger = log.With(logger,"caller",log.DefaultCaller)
-		}
 		r := request.(UserRequest)
 		var result string
 		if r.Method == "GET" {
 			result = service.GetName(r.Uid)+strconv.Itoa(initialize.ServicePort)
-			logger.Log("method",r.Method,"event","get user","userId",r.Uid)
 		}else if r.Method == "DELETE" {
 			err := service.DelUser(r.Uid)
 			if err != nil {

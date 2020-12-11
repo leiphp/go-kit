@@ -8,6 +8,7 @@ import (
 	"gokit/initialize"
 	. "gokit/services"
 	"golang.org/x/time/rate"
+	kitlog "github.com/go-kit/kit/log"
 	"log"
 	"net/http"
 	"os"
@@ -28,10 +29,17 @@ func main () {
 		log.Fatal("请指定端口")
 	}
 	initialize.SetServiceNameAndPort(*name, *port) //设置服务名和端口
+	var logger kitlog.Logger
+	{
+		logger = kitlog.NewLogfmtLogger(os.Stdout)
+		logger = kitlog.WithPrefix(logger,"gokit","1.0")
+		logger = kitlog.With(logger,"time",kitlog.DefaultTimestampUTC)
+		logger = kitlog.With(logger,"caller",kitlog.DefaultCaller)
+	}
 
 	user := UserService{}
 	limit := rate.NewLimiter(1, 5)
-	endp := RateLimit(limit)(GenUserEndpoint(user))
+	endp := RateLimit(limit)(UserServiceLogMiddleware(logger)(GenUserEndpoint(user)))
 
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(MyErrorEncoder),
