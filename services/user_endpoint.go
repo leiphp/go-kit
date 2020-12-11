@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/log"
 	"gokit/initialize"
 	"gokit/utils"
 	"golang.org/x/time/rate"
+	"os"
 	"strconv"
 )
 
@@ -34,10 +36,18 @@ func RateLimit(limit *rate.Limiter) endpoint.Middleware {
 
 func GenUserEndpoint( service UserService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		var logger log.Logger
+		{
+			logger = log.NewLogfmtLogger(os.Stdout)
+			logger = log.WithPrefix(logger,"gokit","1.0")
+			logger = log.With(logger,"time",log.DefaultTimestampUTC)
+			logger = log.With(logger,"caller",log.DefaultCaller)
+		}
 		r := request.(UserRequest)
 		var result string
 		if r.Method == "GET" {
 			result = service.GetName(r.Uid)+strconv.Itoa(initialize.ServicePort)
+			logger.Log("method",r.Method,"event","get user","userId",r.Uid)
 		}else if r.Method == "DELETE" {
 			err := service.DelUser(r.Uid)
 			if err != nil {
