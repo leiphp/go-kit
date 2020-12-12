@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
 	"gokit/initialize"
@@ -14,10 +15,30 @@ import (
 type UserRequest struct {
 	Uid int `json:"uid"`
 	Method string
+	Token  string
 }
 
 type UserResponse struct {
 	Result string 	`json:"result"`
+}
+
+//token验证中间件
+func CheckTokenMiddleware() endpoint.Middleware {
+	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			r := request.(UserRequest)
+			uc := UserClaim{}
+			getToken,err := jwt.ParseWithClaims(r.Token,&uc,func(token *jwt.Token) (i interface{},e error){
+				return []byte(secKey), nil
+			})
+			if getToken != nil && getToken.Valid {//验证通过
+				newCtx := context.WithValue(ctx,"LoginUser",getToken.Claims.(*UserClaim).Uname)
+				return next(newCtx, request)
+			}else {
+				return nil, utils.NewMyError(403, "error token")
+			}
+		}
+	}
 }
 
 //日志中间件
@@ -47,6 +68,7 @@ func RateLimit(limit *rate.Limiter) endpoint.Middleware {
 func GenUserEndpoint( service UserService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		r := request.(UserRequest)
+		fmt.Println("当前登录用户名是：",ctx.Value("LoginUser"))
 		var result string
 		if r.Method == "GET" {
 			result = service.GetName(r.Uid)+strconv.Itoa(initialize.ServicePort)

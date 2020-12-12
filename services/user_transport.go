@@ -17,6 +17,7 @@ func DecodeUserRequest(c context.Context, r *http.Request) (interface{}, error){
 		return UserRequest{
 			Uid:uid,
 			Method:r.Method,
+			Token:r.URL.Query().Get("token"),
 		}, nil
 	}
 	return nil, errors.New("参数错误")

@@ -37,9 +37,9 @@ func main () {
 		logger = kitlog.With(logger,"caller",kitlog.DefaultCaller)
 	}
 
-	user := UserService{}
+	user := UserService{}	//用户服务
 	limit := rate.NewLimiter(1, 5)
-	endp := RateLimit(limit)(UserServiceLogMiddleware(logger)(GenUserEndpoint(user)))
+	endp := RateLimit(limit)(UserServiceLogMiddleware(logger)(CheckTokenMiddleware()(GenUserEndpoint(user))))
 
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(MyErrorEncoder),
@@ -47,8 +47,15 @@ func main () {
 
 	serverHandler := httptransport.NewServer(endp,DecodeUserRequest,EncodeUserRequest,options...)
 
+	//增加handler用于获取用户token
+	accessService := &AccessService{}
+	accessServiceEndpoint := AccessEndpoint(accessService)
+	accessHandler := httptransport.NewServer(accessServiceEndpoint,DecodeAccessRequest,EncodeAccessRequest,options...)
+
+
 	router := mymux.NewRouter()
 	//r.Handle(`/user/{uid:\d+}`,serverHandler)
+	router.Methods("POST").Path("/access-token").Handler(accessHandler)
 	router.Methods("GET","DELETE").Path(`/user/{uid:\d+}`).Handler(serverHandler)
 	router.Methods("GET").Path("/health").HandlerFunc(func(write http.ResponseWriter, request *http.Request) {
 		write.Header().Set("Content-Type", "application/json")
